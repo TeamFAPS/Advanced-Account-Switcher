@@ -12,6 +12,7 @@
 int ret;
 int pos = 0;
 
+
 int get_key() {
 	static unsigned buttons[] = {
 		SCE_CTRL_SELECT,
@@ -240,24 +241,24 @@ again:
 		goto again;
         case SCE_CTRL_CROSS:
         
-        sceRegMgrSetKeyStr("/CONFIG/SYSTEM", "username", dirName,strlen(dirName));
+        ret = sceRegMgrSetKeyStr("/CONFIG/SYSTEM", "username", dirName,strlen(dirName) + 1);
+        
         char aid[8] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
         sprintf(path, "ux0:/AdvancedAccountSwitcher/accounts/%s/aid.bin",dirName);
-        
-        ReadFile(path,aid,getFileSize(path));
-        sceRegMgrSetKeyBin("/CONFIG/NP", "account_id", aid,sizeof(aid));
+        ret = ReadFile(path,aid,getFileSize(path));
+        sceRegMgrSetKeyBin("/CONFIG/NP", "account_id", aid,getFileSize(path));
         
         char loginId[256];
         memset(loginId, 0, 256);
         sprintf(path, "ux0:/AdvancedAccountSwitcher/accounts/%s/username.txt",dirName);
-        ReadFile(path,loginId,getFileSize(path));
-        sceRegMgrSetKeyStr("/CONFIG/NP", "login_id", loginId,strlen(loginId));
+        ret = ReadFile(path,loginId,getFileSize(path));
+        sceRegMgrSetKeyStr("/CONFIG/NP", "login_id", loginId,strlen(loginId) + 1);
         
         char password[1048];
         memset(password, 0, 1048);
         sprintf(path, "ux0:/AdvancedAccountSwitcher/accounts/%s/password.txt",dirName);
-        ReadFile(path,password,getFileSize(path));
-        sceRegMgrSetKeyStr("/CONFIG/NP", "password", password,strlen(password));
+        ret = ReadFile(path,password,getFileSize(path));
+        sceRegMgrSetKeyStr("/CONFIG/NP", "password", password,strlen(password) + 1);
         
         sceIoRemove("ux0:id.dat"); //unlink memory card
         deleteSavedata(); //enable trophy eligibility
@@ -278,16 +279,12 @@ again:
 
 void removeAccount()
 {
-    //setup buffer shit because C sucks.
-    char key_buf[8];
-    uint64_t uni_key = 0x0000000000000000LL;
-    memset(key_buf, 0, sizeof(key_buf));
-    memcpy(&key_buf[0], &uni_key, sizeof(key_buf));
+    char aid[8] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
     
     //set keys.
     sceRegMgrSetKeyStr("/CONFIG/NP", "login_id", (char[]){0x0}, 1);
     sceRegMgrSetKeyStr("/CONFIG/NP", "password", (char[]){0x0}, 1);
-    sceRegMgrSetKeyBin("/CONFIG/NP", "account_id", key_buf, sizeof(key_buf));
+    sceRegMgrSetKeyBin("/CONFIG/NP", "account_id", aid, sizeof(aid));
     sceRegMgrSetKeyInt("/CONFIG/NP", "enable_np", 0);
     
     sceIoRemove("ux0:id.dat"); //unlink memory card
@@ -298,15 +295,18 @@ void removeAccount()
     sceKernelDelayThread(1000000);
     main();
 }
+
 void main() {
         int pos_max = 4;
 	psvDebugScreenInit();
+        char username[256];
 again:
         if (pos == -1) pos=0;
         if (pos == pos_max+1) pos=pos_max;
         psvDebugScreenClear(0);
         printf("AdvancedAccountSwitcher\n");
-        char username[256];
+        
+
         memset(username, 0, 256);
 	sceRegMgrGetKeyStr("/CONFIG/SYSTEM", "username", username,sizeof(username));
         

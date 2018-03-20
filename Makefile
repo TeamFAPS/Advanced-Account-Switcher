@@ -2,7 +2,7 @@ TITLE_ID = ACCSWIT02
 TARGET = Advanced_Account_Switcher
 OBJS   = main.o graphics.o font.o
 
-LIBS = -lSceDisplay_stub -lSceCtrl_stub -lSceAppMgr_stub -lSceRegistryMgr_stub
+LIBS = -lSceDisplay_stub -lSceCtrl_stub -lSceAppMgr_stub -lSceRegistryMgr_stub -lSceAppUtil_stub
 
 PREFIX  = arm-vita-eabi
 CC      = $(PREFIX)-gcc
