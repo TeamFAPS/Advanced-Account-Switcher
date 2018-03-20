@@ -282,6 +282,7 @@ void removeAccount()
     char aid[8] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
     
     //set keys.
+    sceRegMgrSetKeyStr("/CONFIG/SYSTEM", "username", (char[]){0x0},1);
     sceRegMgrSetKeyStr("/CONFIG/NP", "login_id", (char[]){0x0}, 1);
     sceRegMgrSetKeyStr("/CONFIG/NP", "password", (char[]){0x0}, 1);
     sceRegMgrSetKeyBin("/CONFIG/NP", "account_id", aid, sizeof(aid));
