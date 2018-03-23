@@ -13,7 +13,8 @@ int ret;
 int pos = 0;
 
 
-int get_key() {
+int get_key() 
+{
 	static unsigned buttons[] = {
 		SCE_CTRL_SELECT,
 		SCE_CTRL_START,
@@ -56,7 +57,7 @@ int WriteFile(char *file, void *buf, int size) {
 }
 
 int ReadFile(char *file, void *buf, int size) {
-	SceUID fd = sceIoOpen(file,SCE_O_RDWR, 0777);
+	SceUID fd = sceIoOpen(file,SCE_O_RDONLY, 0777);
 	if (fd < 0)
 		return fd;
 
@@ -75,14 +76,68 @@ int getFileSize(const char *file) {
 	return fileSize;
 }
 
+void write_option(char *option, char *value)
+{
+    char path[256];
+    sceIoMkdir("ux0:/AdvancedAccountSwitcher",0006);
+    sceIoMkdir("ux0:/AdvancedAccountSwitcher/options",0006);
+    sprintf(path, "ux0:/AdvancedAccountSwitcher/options/%s",option);
+    WriteFile(path,value,strlen(value));
+}
+
+void read_option(char *option, char *value)
+{
+    char path[256];
+    sceIoMkdir("ux0:/AdvancedAccountSwitcher",0006);
+    sceIoMkdir("ux0:/AdvancedAccountSwitcher/options",0006);
+    sprintf(path, "ux0:/AdvancedAccountSwitcher/options/%s",option);
+    ReadFile(path,value,getFileSize(path));
+}
+
+void optionsMenu()
+{
+    pos = 0;
+again:
+    if (pos < 0) pos = 0;
+    if (pos > 0) pos = 0;
+    psvDebugScreenClear(0);
+    char backupAct[4] = {0x00,0x00,0x00,0x00};
+    read_option("backupActData",backupAct);
+    printf("AdvancedAccountSwitcher Options Menu:\n");
+    if (pos == 0) printf(">Backup & Restore Activation Data: %s\n",backupAct); else printf(" Backup & Restore Activation Data: %s\n",backupAct);
+    printf("\n\nX: Change value\n");
+    printf("O: Back to main menu\n");
+    
+    	switch(get_key()) {
+	case SCE_CTRL_DOWN:
+		pos++;
+		goto again;
+	case SCE_CTRL_UP:
+		pos--;
+		goto again;
+        case SCE_CTRL_CROSS:
+            if (pos == 0)
+            {
+                if (strcmp(backupAct, "yes") == 0) write_option("backupActData","no");
+                if (strcmp(backupAct, "no") == 0) write_option("backupActData","yes");
+                goto again;
+            }
+        case SCE_CTRL_CIRCLE:
+            pos = 5;
+            main();
+            
+        }
+}
+
+
 void deleteSavedata()
 {
-        //remove the savedata created at boot:
-        sceIoRemove("savedata0:/sce_sys/param.sfo");
-        sceIoRemove("savedata0:/sce_sys/sealedkey");
-        sceIoRemove("savedata0:/sce_sys/keystone");
-        sceIoRemove("savedata0:/sce_sys/_safemem.dat");
-        sceIoRemove("savedata0:/sce_sys/sdslot.dat");
+    //remove the savedata created at boot:
+    sceIoRemove("savedata0:/sce_sys/param.sfo");
+    sceIoRemove("savedata0:/sce_sys/sealedkey");
+    sceIoRemove("savedata0:/sce_sys/keystone");
+    sceIoRemove("savedata0:/sce_sys/_safemem.dat");
+    sceIoRemove("savedata0:/sce_sys/sdslot.dat");
 }
 
 void accountMenu()
@@ -150,47 +205,76 @@ again:
 
 void saveAccount()
 {
-                sceIoMkdir("ux0:/AdvancedAccountSwitcher",0006);
-                sceIoMkdir("ux0:/AdvancedAccountSwitcher/accounts",0006);
-                
-                char path[256];
-                char username[256];
-                memset(username, 0, 256);
-                sceRegMgrGetKeyStr("/CONFIG/SYSTEM", "username", username,sizeof(username));
-                
-                if (strlen(username) == 0)
-                {
-                psvDebugScreenClear(0);
-                printf("There is no linked account.");
-                sceKernelDelayThread(1000000);
-                pos = 2;
-                main();
-                }
-                
-                sprintf(path, "ux0:/AdvancedAccountSwitcher/accounts/%s",username);
-                sceIoMkdir(path,0006);
-                
-                char aid[8] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
-                sceRegMgrGetKeyBin("/CONFIG/NP", "account_id", aid,sizeof(aid));
-                sprintf(path, "ux0:/AdvancedAccountSwitcher/accounts/%s/aid.bin",username);
-                WriteFile(path,aid,sizeof(aid));
-                
-                char loginId[256];
-                memset(loginId, 0, 256);
-                sceRegMgrGetKeyStr("/CONFIG/NP", "login_id", loginId,sizeof(loginId));
-                sprintf(path, "ux0:/AdvancedAccountSwitcher/accounts/%s/username.txt",username);
-                WriteFile(path,loginId,strlen(loginId));
-                
-                char password[1048];
-                memset(password, 0, 1048);
-                sceRegMgrGetKeyStr("/CONFIG/NP", "password", password,sizeof(password));
-                sprintf(path, "ux0:/AdvancedAccountSwitcher/accounts/%s/password.txt",username);
-                WriteFile(path,password,strlen(password));
-                
-                psvDebugScreenClear(0);
-                printf("Account: %s Saved!",username);
-                sceKernelDelayThread(1000000);
-                main();
+        sceIoMkdir("ux0:/AdvancedAccountSwitcher",0006);
+        sceIoMkdir("ux0:/AdvancedAccountSwitcher/accounts",0006);
+        
+        
+        char path[256];
+        char username[256];
+        memset(username, 0, 256);
+        sceRegMgrGetKeyStr("/CONFIG/SYSTEM", "username", username,sizeof(username));
+        
+        if (strlen(username) == 0)
+        {
+        psvDebugScreenClear(0);
+        printf("There is no linked account.");
+        sceKernelDelayThread(1000000);
+        pos = 2;
+        main();
+        }
+        
+        sprintf(path, "ux0:/AdvancedAccountSwitcher/accounts/%s",username);
+        sceIoMkdir(path,0006);
+        
+        char backupAct[4] = {0x00,0x00,0x00,0x00};
+        read_option("backupActData",backupAct);
+        if (strcmp(backupAct,"yes") == 0) 
+        {
+            int size = getFileSize("tm0:/npdrm/act.dat");
+            char *actdat = malloc(size);
+            
+            //Backup NPDRM act.dat
+            if (size > 0)
+            {
+            ReadFile("tm0:/npdrm/act.dat",actdat,size);
+            sprintf(path, "ux0:/AdvancedAccountSwitcher/accounts/%s/npdrm.dat",username);
+            WriteFile(path,actdat,size);
+            }
+            
+            size = getFileSize("tm0:psmdrm/act.dat");
+            char *psmdat = malloc(size);
+            //Backup PSMDRM act.dat
+            if (size > 0)
+            {
+            ReadFile("tm0:psmdrm/act.dat",psmdat,size);
+            sprintf(path, "ux0:/AdvancedAccountSwitcher/accounts/%s/psmdrm.dat",username);
+            WriteFile(path,psmdat,size);
+            }
+            
+        }
+        
+        
+        char aid[8] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+        sceRegMgrGetKeyBin("/CONFIG/NP", "account_id", aid,sizeof(aid));
+        sprintf(path, "ux0:/AdvancedAccountSwitcher/accounts/%s/aid.bin",username);
+        WriteFile(path,aid,sizeof(aid));
+        
+        char loginId[256];
+        memset(loginId, 0, 256);
+        sceRegMgrGetKeyStr("/CONFIG/NP", "login_id", loginId,sizeof(loginId));
+        sprintf(path, "ux0:/AdvancedAccountSwitcher/accounts/%s/username.txt",username);
+        WriteFile(path,loginId,strlen(loginId));
+        
+        char password[1048];
+        memset(password, 0, 1048);
+        sceRegMgrGetKeyStr("/CONFIG/NP", "password", password,sizeof(password));
+        sprintf(path, "ux0:/AdvancedAccountSwitcher/accounts/%s/password.txt",username);
+        WriteFile(path,password,strlen(password));
+        
+        psvDebugScreenClear(0);
+        printf("Account: %s Saved!",username);
+        sceKernelDelayThread(1000000);
+        main();
 }
 
 void switchMenu()
@@ -263,6 +347,36 @@ again:
         sceIoRemove("ux0:id.dat"); //unlink memory card
         deleteSavedata(); //enable trophy eligibility
         
+        char backupAct[4] = {0x00,0x00,0x00,0x00};
+        read_option("backupActData",backupAct);
+        if (strcmp(backupAct,"yes") == 0) 
+        {
+            sceIoMkdir("tm0:npdrm",0006);
+            sceIoMkdir("tm0:psmdrm",0006);
+            
+            sprintf(path, "ux0:/AdvancedAccountSwitcher/accounts/%s/npdrm.dat",dirName);
+            int size = getFileSize(path);
+            char *actdat = malloc(size);
+            //Restore NPDRM act.dat
+            if (size > 0)
+            {
+            ReadFile(path,actdat,size);
+            WriteFile("tm0:/npdrm/act.dat",actdat,size);
+            }
+            
+            sprintf(path, "ux0:/AdvancedAccountSwitcher/accounts/%s/psmdrm.dat",dirName);
+            size = getFileSize(path);
+            char *psmdat = malloc(size);
+            //Restore PSMDRM act.dat
+            if (size > 0)
+            {
+            sceIoRemove("tm0:psmdrm/act.dat"); // cant overwrite directly.. for some reason.
+            ReadFile(path,psmdat,size);
+            WriteFile("tm0:psmdrm/act.dat",psmdat,size);
+            }
+            
+        }
+        
         psvDebugScreenClear(0);
         printf("Switched to account: %s",dirName);
         sceKernelDelayThread(1000000);
@@ -297,10 +411,30 @@ void removeAccount()
     main();
 }
 
+int initOptions()
+{
+    char backupAct[4] = {0x00,0x00,0x00,0x00};
+    read_option("backupActData",backupAct);
+    if (strcmp(backupAct,"no") == 0) 
+    {
+        return 0;
+    }
+    else if (strcmp(backupAct,"yes") == 0) 
+    {
+        return 0;
+    }
+    else
+    {
+        write_option("backupActData","yes");
+    }
+    
+}
+
 void main() {
-        int pos_max = 4;
+        int pos_max = 5;
 	psvDebugScreenInit();
         char username[256];
+        initOptions();
 again:
         if (pos == -1) pos=0;
         if (pos == pos_max+1) pos=pos_max;
@@ -320,6 +454,7 @@ again:
         if (pos == 2) printf(">Save the linked account.\n"); else printf(" Save the linked account.\n");
         if (pos == 3) printf(">Change the linked AID.\n"); else printf(" Change the linked AID.\n");
         if (pos == 4) printf(">Run PSN Signup Application.\n"); else printf(" Run PSN Signup Application.\n");
+        if (pos == 5) printf(">Change Options.\n"); else printf(" Change Options.\n");
 
 	switch(get_key()) {
 	case SCE_CTRL_DOWN:
@@ -350,6 +485,10 @@ again:
             {
             sceAppMgrLaunchAppByUri(0x20000, "psnreg:");
             goto again;
+            }
+            else if (pos == 5)
+            {
+            optionsMenu();
             }
 	default:
 		goto again;
